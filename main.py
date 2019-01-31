@@ -3,9 +3,10 @@
 """
 archives files in a folder while preserving the last few versions
 """
-import sys
-import os, shutil
+import sys, os, shutil, argparse
 from datetime import date
+
+DEFAULT_VERSIONS_TO_KEEP = 1 # 1 will keep only the current archive and 1 version back, 0 would mean current archive only
 
 def make_archive(source, destination):
         base = os.path.basename(destination)
@@ -23,16 +24,26 @@ def delete_old_versions(fileList, numberToKeep, targetPath):
                 print('Deleted ' + fileList[i])
                 os.remove(os.path.join(targetPath, fileList[i]))
 
-#print(sys.argv)
+# get optional args
+parser=argparse.ArgumentParser()
+parser.add_argument('targetPath', help='The target root folder')
+parser.add_argument('targetSubFolder', help='The target folder to archive inside the root')
+parser.add_argument('--versioncount', help='Number of version histories to keep, the rest are deleted', type=int, default=DEFAULT_VERSIONS_TO_KEEP)
+parser.add_argument('--archivename', help='The target folder to archive inside the root')
+parser.add_argument('--force', help='Overwrite existing file', action="store_true")
+
+args=parser.parse_args()
+
+print(sys.argv)
+print(args)
+
 if len(sys.argv)<= 1:
         raise Exception('Missing arguments for targetPath and targetSubfolder')
 
-DEFAULT_VERSIONS_TO_KEEP = 1 # 1 will keep only the current archive and 1 version back, 0 would mean current archive only
-
-targetPath = sys.argv[1]
-targetSubFolder = sys.argv[2]
-versionsToKeep = sys.argv[3] if len(sys.argv) >= 4 else DEFAULT_VERSIONS_TO_KEEP
-archiveName = sys.argv[4] if len(sys.argv) >= 5 else targetSubFolder    # name of the archive will be the name of the subfolder
+targetPath = args.targetPath
+targetSubFolder = args.targetSubFolder
+versionsToKeep = args.versioncount
+archiveName = args.archivename if args.archivename else targetSubFolder    # name of the archive will be the name of the subfolder
 
 today = str(date.today())
 
@@ -49,7 +60,7 @@ for f in filesAtTarget:
                         archivesToDelete.append(f)
 
 
-if shouldMakeArchive:
+if shouldMakeArchive or args.force:
         make_archive(os.path.join(targetPath, targetSubFolder), os.path.join(targetPath, targetArchiveName))
 else:
         print("archive already exists")
