@@ -62,10 +62,11 @@ for f in filesAtTarget:
 
 if shouldMakeArchive or args.force:
         make_archive(os.path.join(targetPath, targetSubFolder), os.path.join(targetPath, targetArchiveName))
+        print("Created archive " + targetArchiveName)
 else:
-        print("archive already exists")
+        print("archive already exists, use --force to overwrite")
 
 if len(archivesToDelete) > 0 and len(archivesToDelete) > versionsToKeep :
-        delete_old_versions(archivesToDelete, 1, targetPath)
+        delete_old_versions(archivesToDelete, versionsToKeep, targetPath)
 else:
         print("No old version deleted")
