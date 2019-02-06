@@ -26,10 +26,10 @@ def delete_old_versions(fileList, numberToKeep, targetPath):
 
 # get optional args
 parser=argparse.ArgumentParser()
-parser.add_argument('targetPath', help='The target root folder')
-parser.add_argument('targetSubFolder', help='The target folder to archive inside the root')
-parser.add_argument('--versioncount', help='Number of version histories to keep, the rest are deleted', type=int, default=DEFAULT_VERSIONS_TO_KEEP)
-parser.add_argument('--archivename', help='The target folder to archive inside the root')
+parser.add_argument('targetFolder', help='The target folder to archive, archive is stored in the parent folder')
+parser.add_argument('--backupfolder', '-b', help='Additional copy of the archive will be stored in this folder, existing files are overwritten')
+parser.add_argument('--versioncount', '-c', help='Number of version histories to keep, the rest are deleted', type=int, default=DEFAULT_VERSIONS_TO_KEEP)
+parser.add_argument('--archivename', '-a', help='The target folder to archive inside the root')
 parser.add_argument('--force', help='Overwrite existing file', action="store_true")
 
 args=parser.parse_args()
@@ -40,10 +40,12 @@ print(args)
 if len(sys.argv)<= 1:
         raise Exception('Missing arguments for targetPath and targetSubfolder')
 
-targetPath = args.targetPath
-targetSubFolder = args.targetSubFolder
+targetFolder = args.targetFolder
+destination = os.path.abspath(os.path.join(targetFolder, os.pardir))      # parent of the target folder
+targetFolderName = os.path.basename(os.path.normpath(targetFolder))
 versionsToKeep = args.versioncount
-archiveName = args.archivename if args.archivename else targetSubFolder    # name of the archive will be the name of the subfolder
+archiveName = args.archivename or targetFolderName    # name of the archive will be the name of the subfolder
+backupFolder = args.backupfolder
 
 today = str(date.today())
 
@@ -51,9 +53,9 @@ shouldMakeArchive = True
 targetArchiveName = '%s-%s.%s'%(archiveName,today,"zip") # eg. testarchive-2019-01-21.zip
 
 archivesToDelete = []
-filesAtTarget = os.listdir(targetPath)
+filesAtTarget = os.listdir(destination)
 for f in filesAtTarget:
-        if os.path.isfile(os.path.join(targetPath, f)):
+        if os.path.isfile(os.path.join(destination, f)):
                 if  f == targetArchiveName :
                         shouldMakeArchive = False
                 elif archiveName in f :
@@ -61,12 +63,17 @@ for f in filesAtTarget:
 
 
 if shouldMakeArchive or args.force:
-        make_archive(os.path.join(targetPath, targetSubFolder), os.path.join(targetPath, targetArchiveName))
+        source = os.path.normpath(targetFolder)
+        make_archive(source, os.path.join(destination, targetArchiveName))
         print("Created archive " + targetArchiveName)
+
+        if backupFolder:
+                make_archive(source, os.path.join(backupFolder, targetArchiveName))
+                print("Created backup copy in " + backupFolder)
 else:
         print("archive already exists, use --force to overwrite")
 
 if len(archivesToDelete) > 0 and len(archivesToDelete) > versionsToKeep :
-        delete_old_versions(archivesToDelete, versionsToKeep, targetPath)
+        delete_old_versions(archivesToDelete, versionsToKeep, destination)
 else:
         print("No old version deleted")
